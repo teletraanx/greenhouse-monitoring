@@ -20,8 +20,27 @@ HTML = """
 		th, td { padding: 0.75rem; border-bottom: 1px solid #ddd; text-align: left; }
 		th { background: #eee; }
 		.alert { color: #b00020; font-weight: bold; }
+
+		.chart-column {
+			width: 50%;
+			min-width: 320px;
+		}
+
+		.chart-card {
+			background: white;
+			padding: 1rem 1.25rem;
+			border-radius: 12px
+			box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+			margin-bottom: 1rem;
+		}
+
+		.chart-card canvas {
+			width: 100% !important;
+			height: 250px !important;
+		}
 	</style>
 </head>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <body>
 	<h1>Greenhouse Dashboard</h1>
 
@@ -48,25 +67,80 @@ HTML = """
 	</div>
 	{% endif %}
 
-	<h2>Recent Readings</h2>
-	<table>
-		<tr>
-			<th>Time</th>
-			<th>Node</th>
-			<th>Temp (F)</th>
-			<th>Humidity (%)</th>
-			<th>RSSI</th>
-		</tr>
-		{% for row in rows %}
-		<tr>
-			<td>{{ row["ts"] }}</td>
-			<td>{{ row["node_id"] }}</td>
-			<td>{{ row["temp_f"] }}</td>
-			<td>{{ row["humidity"] }}</td>
-			<td>{{ row["rssi"] }}</td>
-		</tr>
-		{% endfor %}
-	</table>
+	<h2>Charts</h2>
+
+	<div class="chart-column">
+		<div class="chart-card">
+			<h3>Temperature (Last 50 Readings)</h3>
+			<canvas id="tempChart"></canvas>
+		</div>
+
+		<div class="chart-card">
+			<h3>Humidity (Last 50 Readings)</h3>
+			<canvas id="humidityChart"></canvas>
+		</div>
+	</div>
+
+	<script>
+	const labels = {{ rows | map(attribute='ts') | list | tojson }};
+	const temps = {{ rows | map(attribute='temp_f') | list | tojson }};
+	const humidities = {{ rows | map(attribute='humidity') | list | tojson }};
+
+	const reversedLabels = [...labels].reverse();
+	const reversedTemps = [...temps].reverse();
+	const reversedHumidities = [...humidities].reverse();
+
+	const tempCtx = document.getElementById('tempChart').getContext('2d');
+
+	new Chart(tempCtx, {
+		type: 'line',
+		data: {
+			labels: reversedLabels,
+			datasets: [{
+				label: 'Temperature (F)',
+				data: reversedTemps,
+				fill: false,
+				tension: 0.3
+			}]
+		},
+		options: {
+			responsive: true,
+			maintainAspectRatio: false,
+			scales: {
+				x: {
+					ticks: {
+						maxTicksLimit: 6
+					}
+				}
+			}
+		}
+	});
+
+	const humidityCtx = document.getElementById('humidityChart').getContext('2d');
+	new Chart(humidityCtx, {
+		type: 'line',
+		data: {
+			labels: reversedLabels,
+			datasets: [{
+				label: 'Humidity (%)',
+				data: reversedHumidities,
+				fill: false,
+				tension: 0.3
+			}]
+		},
+		options: {
+			responsive: true,
+			maintainAspectRatio: false,
+			scales: {
+				x: {
+					ticks: {
+						maxTicksLimit: 6
+					}
+				}
+			}
+		}
+	});
+	</script>
 </body>
 </html>
 """
@@ -90,7 +164,7 @@ def dashboard():
 		SELECT ts, node_id, temp_f, humidity, rssi
 		FROM readings
 		ORDER BY id DESC
-		LIMIT 20
+		LIMIT 50
 	""").fetchall()
 	conn.close()
 
