@@ -47,7 +47,7 @@ HTML = """
 	<meta charset="utf-8">
 	<title>Greenhouse Dashboard</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<meta http-equiv="refresh" content="30">
+	<meta http-equiv="refresh" content="900">
 	<style>
 		:root {
 			--bg: #0f172a;
@@ -253,6 +253,8 @@ HTML = """
 
 		.muted {
 			color: var(--muted);
+			font-size: 0.9rem;
+			margin-bottom: 0.75rem;
 		}
 
 		@media (min-width: 700px) {
@@ -290,6 +292,10 @@ HTML = """
 		{% if latest %}
 		<div class="card">
 			<h2>Latest Reading</h2>
+			
+			<p class="muted">
+				Auto-refreshes every 15 minutes
+			</p>
 
 			<div class="stats-grid">
 				<div class="stat-row">
