@@ -11,107 +11,279 @@ HTML = """
 <head>
 	<meta charset="utf-8">
 	<title>Greenhouse Dashboard</title>
-	<meta http-equiv="refresh" content="10">
+	<meta name="viewport" content="width=device-width, initial-scaled=1">
+	<meta http-equiv="refresh" content="30">
 	<style>
-		body { 
-			font-family: Arial, sans-serif;
-			margin: 2rem;
-			background: #0f172a; /*blue grey*/
-			color: #e5e7eb;
+		:root {
+			--bg: #0f172a;
+			--panel: #1e293b;
+			--panel-2: #111827;
+			--text: #e5e7eb;
+			--muted: #94a3b8;
+			--border: #334155;
+			--accent-blue: #93c5fd;
+			--temp: #f97316;
+			--humidity: #22c55e;
+			--alert: #f87171;
+			--ok: #86efac;
 		}
 
-		.card, .chart-card, table {
-			background: #1e293b;
-			border-radius: 12px;
-			box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+		* {
+			box-sizing: border-box;
 		}
-		
-		.card, .chart-card {
-			padding: 1rem 1.25rem;
-			margin-bottom: 1rem;
-			max-width: 600px;
+
+		body { 
+			font-family: Arial, sans-serif;
+			margin: 0;
+			background: var(--bg);
+			color: var(--text);
+		}
+
+		.page {
+			width: 100%;
+			max-width: 1200px;
+			margin: 0 auto;
+			padding: 1rem;
 		}
 
 		h1, h2, h3 {
 			margin-top: 0;
-			color: #f1f5f9;
+			color: #f8fafc;
+		}
+
+		h1 {
+			font-size: 1.9rem;
+			margin-bottom: 1rem;
+		}
+
+		h2 {
+			font-size: 1.2rem;
+			margin-bottom: 0.75rem;
+		}
+
+		h3 {
+			font-size: 1rem;
+			margin-bottom: 0.75rem;
+		}
+
+		.card,
+		.chart-card,
+		.table-card {
+			background: var(--panel);
+			border-radius: 14px;
+			box-shadow: 0 2px 12px rgba(255,255,255,0.03);
+		}
+
+		.card,
+		.chart-card,
+		.table-card {
+			padding: 1rem 1.1rem;
+		}
+
+		.top-grid {
+			display: grid;
+			grid-template-columns: 1fr;
+			gap: 1rem;
+			margin-bottom: 1rem;
+		}
+
+		.stats-grid {
+			display: grid;
+			grid-template-columns: 1fr;
+			gap: 0.5rem;
+			margin-top: 0.75rem;
+		}
+
+		.stat-row {
+			display: flex;
+			justify-content: space-between;
+			gap: 1rem;
+			padding: 0.55rem 0;
+			border-bottom: 1px solid var(--border);
+		}
+
+		.stat-row:last-child {
+			border-bottom: none;
+		}
+
+		.label {
+			color: var(--muted);
+		}
+
+		.value {
+			font-weight: bold;
+			text-align: right;
+		}
+
+		.alert {
+			color: var(--alert);
+			font-weight: bold;
+			margin-top: 0.75rem;
+		}
+
+		.ok {
+			color: var(--ok);
+			font-weight: bold;
+			margin-top: 0.75rem;
+		}
+
+		.charts-section {
+			margin-bottom: 1rem;
+		}
+
+		.charts-grid {
+			display: grid;
+			grid-template-columns: 1fr;
+			gap: 1rem;
+			align-items: start;
+		}
+
+		.chart-card {
+			width: 100%;
+		}
+
+		.chart-wrap {
+			position: relative;
+			width: 100%;
+			height: 260px;
+		}
+
+		.table-card {
+			overflow: hidden;
+		}
+
+		.table-scroll {
+			overflow-x: auto;
+			-webkit-overflow-scrolling: touch;
 		}
 
 		table {
 			border-collapse: collapse;
 			width: 100%;
-			overflow: hidden;
+			min-width: 560px;
+			color: var(--text);
 		}
 
 		th, td {
 			padding: 0.75rem;
-			border-bottom: 1px solid #334155;
+			border-bottom: 1px solid var(--border);
 			text-align: left;
+			white-space: nowrap;
 		}
 
 		th {
-			background: #020617;
-			color: #93c5fd;
+			background: var(--panel-2);
+			color: var(--accent-blue);
+			position: sticky;
+			top: 0;
 		}
 
 		tr:hover td {
-			background: #334155;
+			background: rgba(255,255,255,0.03);
 		}
 
-		.alert {
-			color: #f87171;
-			font-weight: bold;
+		.muted {
+			color: var(--muted);
 		}
 
-		.chart-column {
-			width: 50%;
-			min-width: 320px;
+		@media (min-width: 700px) {
+			.page {
+				padding: 1.5rem;
+			}
+
+			.top-grid {
+				grid-template-columns: minmax(320px, 520px);
+			}
+
+			.chart-grid {
+				grid-template-columns: minmax(320px, 650px);
+			}
 		}
 
-		.chart-card canvas {
-			width: 100% !important;
-			height: 250px !important;
+		@media (min-width: 1024px) {
+			.page {
+				padding: 2rem;
+			}
+
+			.top-grid {
+				grid-template-columns: minmax(340px, 480px);
+			}
+
+			.chart-grid {
+				grid-template-columns: minmax(340px, 700px);
+			}
+
+			.chart-wrap {
+				height: 300px;
+			}
 		}
 	</style>
 </head>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <body>
-	<h1>Greenhouse Dashboard</h1>
+	<div class="page">
+		<h1>Greenhouse Dashboard</h1>
+		
+		<div class="top-grid">
+		{% if latest %}
+		<div class="card">
+			<h2>Latest Reading</h2>
 
-	{% if latest %}
-	<div class="card">
-		<h2>Latest Reading</h2>
-		<p><strong>Node:</strong> {{ latest["node_id"] }}</p>
-		<p><strong>Timestamp:</strong> {{ latest["ts"] }}</p>
-		<p><strong>Temperature:</strong> {{ latest["temp_f"] }} F</p>
-		<p><strong>Humidity:</strong> {{ latest["humidity"] }} %</p>
-		<p><strong>RSSI:</strong> {{ latest["rssi"] }}</p>
+			<div class="stats-grid">
+				<div class="stat-row">
+					<span class="label">Node</span>
+					<span class="value">{{ latest["node_id"] }}</span>
+				</div>
+				<div class="stat-row">
+					<span class="label">Timestamp</span>
+					<span class="value">{{ latest["ts"] }}</span>
+				</div>
+				<div class="stat-row">
+					<span class="label">Temperature</span>
+					<span class="value">{{ latest["temp_f"] }} F</span>
+				</div>
+				<div class="stat-row">
+					<span class="label">Humidity</span>
+					<span class="value">{{ latest["humidity"] }} %</span>
+				</div>
+				<div class="stat-row">
+					<span class="label">RSSI</span>
+					<span class="value">{{ latest["rssi"] }}</span>
+				</div>
+			</div>
 
-		{% if latest["temp_f"] > 90 %}
-		<p class="alert">Alert: Temperature is above 90F</p>
-		{% elif latest["temp_f"] < 40 %}
-		<p class="alert">Alert: Temperature is below 40F</p>
+			{% if latest["temp_f"] > 90 %}
+			<p class="alert">Alert: Temperature is above 90F</p>
+			{% elif latest["temp_f"] < 40 %}
+			<p class="alert">Alert: Temperature is below 40F</p>
+			{% else %}
+			<p class="ok">No temperature alerts.</p>
+			{% endif %}
+		</div>
 		{% else %}
-		<p>No temperature alerts.</p>
+		<div class="card">
+			<p>No readings yet.</p>
+		</div>
 		{% endif %}
 	</div>
-	{% else %}
-	<div class="card">
-		<p>No readings yet.</p>
-	</div>
-	{% endif %}
 
-	<h2>Charts</h2>
+	<div class="charts-section">
+		<h2>Charts</h2>
 
-	<div class="chart-column">
-		<div class="chart-card">
-			<h3>Temperature (Last 50 Readings)</h3>
-			<canvas id="tempChart"></canvas>
-		</div>
+		<div class="chart-grid">
+			<div class="chart-card">
+				<h3>Temperature (Last 50 Readings)</h3>
+				<div class="chart-wrap">
+					<canvas id="tempChart"></canvas>
+				</div>
+			</div>
 
-		<div class="chart-card">
-			<h3>Humidity (Last 50 Readings)</h3>
-			<canvas id="humidityChart"></canvas>
+			<div class="chart-card">
+				<h3>Humidity (Last 50 Readings)</h3>
+				<div class="chart-wrap">
+					<canvas id="humidityChart"></canvas>
+				</div>
+			</div>
 		</div>
 	</div>
 
@@ -123,6 +295,37 @@ HTML = """
 	const reversedLabels = [...labels].reverse();
 	const reversedTemps = [...temps].reverse();
 	const reversedHumidities = [...humidities].reverse();
+
+	const sharedOptions = {
+		responsive: true,
+		maintainAspectRatio: false,
+		plugins: {
+			legend: {
+				labels: {
+					color: "#e5e7eb"
+				}
+			}
+		},
+		scales: {
+			x: {
+				ticks: {
+					maxTicksLimit: 6,
+					color: "#94a3b8"
+				},
+				grid: {
+					color: "#334155"
+				}
+			},
+			y: {
+				ticks: {
+					color: "#94a3b8"
+				},
+				grid: {
+					color: "#334155"
+				}
+			}
+		}
+	};
 
 	const tempCtx = document.getElementById('tempChart').getContext('2d');
 
@@ -139,36 +342,7 @@ HTML = """
 				tension: 0.3
 			}]
 		},
-		options: {
-			responsive: true,
-			maintainAspectRatio: false,
-			plugins: {
-				legend: {
-					labels: {
-						color: "#e5e7eb"
-					}
-				}
-			},
-			scales: {
-				x: {
-					ticks: {
-						maxTicksLimit: 6,
-						color: "#94a3b8"
-					},
-					grid: {
-						color: "#334155"
-					}
-				},
-				y: {
-					ticks: {
-						color: "#94a3b8"
-					},
-					grid: {
-						color: "#334155"
-					}
-				}
-			}
-		}
+		options: sharedOptions
 	});
 
 	const humidityCtx = document.getElementById('humidityChart').getContext('2d');
@@ -185,36 +359,7 @@ HTML = """
 				tension: 0.3
 			}]
 		},
-		options: {
-			responsive: true,
-			maintainAspectRatio: false,
-			plugins: {
-				legend: {
-					labels: {
-						color: "#e5e7eb"
-					}
-				}
-			},
-			scales: {
-				x: {
-					ticks: {
-						maxTicksLimit: 6,
-						color: "#94a3b8"
-					},
-					grid: {
-						color: "#334155"
-					}
-				},
-				y: {
-					ticks: {
-						color: "#94a3b8"
-					},
-					grid: {
-						color: "#334155"
-					}
-				}
-			}
-		}
+		options: sharedOptions
 	});
 	</script>
 </body>
