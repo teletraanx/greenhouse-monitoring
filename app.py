@@ -13,25 +13,59 @@ HTML = """
 	<title>Greenhouse Dashboard</title>
 	<meta http-equiv="refresh" content="10">
 	<style>
-		body { font-family: Arial, sans-serif; margin: 2rem; background: #f7f7f7; color: #222; }
-		.card { background: white; padding: 1rem 1.25rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 1rem; max-width: 600px; }
-		h1, h2 { margin-top: 0; }
-		table { border-collapse: collapse; width: 100%; background: white; border-radius: 12px; overflow: hidden; }
-		th, td { padding: 0.75rem; border-bottom: 1px solid #ddd; text-align: left; }
-		th { background: #eee; }
-		.alert { color: #b00020; font-weight: bold; }
+		body { 
+			font-family: Arial, sans-serif;
+			margin: 2rem;
+			background: #0f172a; /*blue grey*/
+			color: #e5e7eb;
+		}
+
+		.card, .chart-card, table {
+			background: #1e293b;
+			border-radius: 12px;
+			box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+		}
+		
+		.card, .chart-card {
+			padding: 1rem 1.25rem;
+			margin-bottom: 1rem;
+			max-width: 600px;
+		}
+
+		h1, h2, h3 {
+			margin-top: 0;
+			color: #f1f5f9;
+		}
+
+		table {
+			border-collapse: collapse;
+			width: 100%;
+			overflow: hidden;
+		}
+
+		th, td {
+			padding: 0.75rem;
+			border-bottom: 1px solid #334155;
+			text-align: left;
+		}
+
+		th {
+			background: #020617;
+			color: #93c5fd;
+		}
+
+		tr:hover td {
+			background: #334155;
+		}
+
+		.alert {
+			color: #f87171;
+			font-weight: bold;
+		}
 
 		.chart-column {
 			width: 50%;
 			min-width: 320px;
-		}
-
-		.chart-card {
-			background: white;
-			padding: 1rem 1.25rem;
-			border-radius: 12px
-			box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-			margin-bottom: 1rem;
 		}
 
 		.chart-card canvas {
@@ -99,6 +133,8 @@ HTML = """
 			datasets: [{
 				label: 'Temperature (F)',
 				data: reversedTemps,
+				borderColor: "#f97316", // orange
+				backgroundColor: "#f97316",
 				fill: false,
 				tension: 0.3
 			}]
@@ -106,10 +142,29 @@ HTML = """
 		options: {
 			responsive: true,
 			maintainAspectRatio: false,
+			plugins: {
+				legend: {
+					labels: {
+						color: "#e5e7eb"
+					}
+				}
+			},
 			scales: {
 				x: {
 					ticks: {
-						maxTicksLimit: 6
+						maxTicksLimit: 6,
+						color: "#94a3b8"
+					},
+					grid: {
+						color: "#334155"
+					}
+				},
+				y: {
+					ticks: {
+						color: "#94a3b8"
+					},
+					grid: {
+						color: "#334155"
 					}
 				}
 			}
@@ -124,6 +179,8 @@ HTML = """
 			datasets: [{
 				label: 'Humidity (%)',
 				data: reversedHumidities,
+				borderColor: "#22c55e", // green
+				backgroundColor: "#22c55e",
 				fill: false,
 				tension: 0.3
 			}]
@@ -131,10 +188,29 @@ HTML = """
 		options: {
 			responsive: true,
 			maintainAspectRatio: false,
+			plugins: {
+				legend: {
+					labels: {
+						color: "#e5e7eb"
+					}
+				}
+			},
 			scales: {
 				x: {
 					ticks: {
-						maxTicksLimit: 6
+						maxTicksLimit: 6,
+						color: "#94a3b8"
+					},
+					grid: {
+						color: "#334155"
+					}
+				},
+				y: {
+					ticks: {
+						color: "#94a3b8"
+					},
+					grid: {
+						color: "#334155"
 					}
 				}
 			}
