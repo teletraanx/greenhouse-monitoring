@@ -226,7 +226,7 @@ HTML = """
 		}
 
 		.alert-meta {
-			color: var(--muted)
+			color: var(--muted);
 			font-size: 0.92rem;
 		}
 
