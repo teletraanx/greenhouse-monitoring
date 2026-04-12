@@ -292,7 +292,7 @@ HTML = """
 	const temps = {{ rows | map(attribute='temp_f') | list | tojson }};
 	const humidities = {{ rows | map(attribute='humidity') | list | tojson }};
 
-	const sharedOptions = {
+	const tempOptions = {
 		responsive: true,
 		maintainAspectRatio: false,
 		plugins: {
@@ -313,8 +313,45 @@ HTML = """
 				}
 			},
 			y: {
+				min: 30,
+				max: 120,
 				ticks: {
+					color: "#94a3b8",
+					stepSize: 10
+				},
+				grid: {
+					color: "#334155"
+				}
+			}
+		}
+	};
+
+	const humidityOptions = {
+		responsive: true,
+		maintainAspectRatio: false,
+		plugins: {
+			legend: {
+				labels: {
+					color: "#e5e7eb"
+				}
+			}
+		},
+		scales: {
+			x: {
+				ticks: {
+					maxTicksLimit: 6,
 					color: "#94a3b8"
+				},
+				grid: {
+					color: "#334155"
+				}
+			},
+			y: {
+				min: 0,
+				max: 100,
+				ticks: {
+					color: "#94a3b8",
+					stepSize: 10
 				},
 				grid: {
 					color: "#334155"
@@ -338,7 +375,7 @@ HTML = """
 				tension: 0.3
 			}]
 		},
-		options: sharedOptions
+		options: tempOptions
 	});
 
 	const humidityCtx = document.getElementById('humidityChart').getContext('2d');
@@ -355,7 +392,7 @@ HTML = """
 				tension: 0.3
 			}]
 		},
-		options: sharedOptions
+		options: humidityOptions
 	});
 	</script>
 </body>
