@@ -5,6 +5,41 @@ DB_PATH = "greenhouse.db"
 
 app = Flask(__name__)
 
+def classify_temp_alert(temp_f):
+	if temp_f is None:
+		return None
+
+	if temp_f < 32:
+		return {
+			"severity": "critical",
+			"label": "Critical",
+			"message": f"Critical low temperature: {temp_f:.1f} F"
+		}
+	if temp_f > 100:
+		return {
+			"severity": "critical",
+			"label": "Critical",
+			"message": f"Critical high temperature: {temp_f:.1f} F"
+		}
+	if temp_f < 45:
+		return {
+			"severity": "warning",
+			"label": "Warning",
+			"message": f"Warning low temperature: {temp_f:.1f} F"
+		}
+	if temp_f > 95:
+		return {
+			"severity": "warning",
+			"label": "Warning",
+			"message": f"Warning high temperature: {temp_f:.1f} F"
+		}
+
+	return {
+		"severity": "ok",
+		"label": "Normal",
+		"message": f"Temperature normal: {temp_f:.1f} F"
+	}
+
 HTML = """
 <!doctype html>
 <html>
@@ -24,8 +59,12 @@ HTML = """
 			--accent-blue: #93c5fd;
 			--temp: #f97316;
 			--humidity: #22c55e;
-			--alert: #f87171;
-			--ok: #86efac;
+			--critical: #fb7185;
+			--critical-soft: rgba(251,113,133,0.14);
+			--warning: #fbbf24;
+			--warning-soft: rgba(251,191,36,0.12);
+			--ok: #4ade80;
+			--ok-soft: rgba(74,222,128,0.10);
 		}
 
 		* {
@@ -67,16 +106,10 @@ HTML = """
 		}
 
 		.card,
-		.chart-card,
-		.table-card {
+		.chart-card {
 			background: var(--panel);
 			border-radius: 14px;
 			box-shadow: 0 2px 12px rgba(255,255,255,0.03);
-		}
-
-		.card,
-		.chart-card,
-		.table-card {
 			padding: 1rem 1.1rem;
 		}
 
@@ -115,16 +148,86 @@ HTML = """
 			text-align: right;
 		}
 
-		.alert {
-			color: var(--alert);
+		.status-banner {
+			margin-top: 0.9rem;
+			padding: 0.85rem 1rem;
+			border-radius: 12px;
 			font-weight: bold;
+			border: 1px solid transparent;
+		}
+
+		.status-banner.ok {
+			color: var(--ok);
+			background: rgba(74,222,128,0.08);
+			border-color: rgba(74,222,128,0.18);
+		}
+
+		.status-banner.warning {
+			color: var(--warning);
+			background: rgba(251,191,36,0.08);
+			border-color: rgba(251,191,36,0.18);
+		}
+
+		.status-banner.critical {
+			color: var(--critical);
+			background: rgba(251,113,133,0.08);
+			border-color: rgba(251,113,133,0.18);
+		}
+
+		.alert-log-list {
+			display: flex;
+			flex-direction: column;
+			gap: 0.75rem;
 			margin-top: 0.75rem;
 		}
 
-		.ok {
-			color: var(--ok);
+		.alert-item {
+			border: 1px solid var(--border);
+			border-radius: 12px;
+			padding: 0.85rem 0.9rem;
+			background: rgba(255,255,255,0.02);
+		}
+
+		.alert-item.warning {
+			border-color: rgba(251,191,36,0.25);
+			background: rgba(215,191,36,0.06);
+		}
+
+		.alert-item.critical {
+			border-color: rgba(251,113,133,0.25);
+			background: rgba(251,113,133,0.06);
+		}
+
+		.alert-topline {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			gap: 0.75rem;
+			margin-bottom: 0.35rem;
+			flex-wrap: wrap;
+		}
+
+		.severity-pill {
+			display: inline-block;
+			padding: 0.2rem 0.55rem;
+			border-radius: 999px;
+			font-size: 0.82rem;
 			font-weight: bold;
-			margin-top: 0.75rem;
+		}
+
+		.severity-pill.warning {
+			color: #111827;
+			background: var(--warning);
+		}
+
+		.severity-pill.critical {
+			color: white;
+			background: var(--critical);
+		}
+
+		.alert-meta {
+			color: var(--muted)
+			font-size: 0.92rem;
 		}
 
 		.charts-section {
@@ -148,40 +251,6 @@ HTML = """
 			height: 260px;
 		}
 
-		.table-card {
-			overflow: hidden;
-		}
-
-		.table-scroll {
-			overflow-x: auto;
-			-webkit-overflow-scrolling: touch;
-		}
-
-		table {
-			border-collapse: collapse;
-			width: 100%;
-			min-width: 560px;
-			color: var(--text);
-		}
-
-		th, td {
-			padding: 0.75rem;
-			border-bottom: 1px solid var(--border);
-			text-align: left;
-			white-space: nowrap;
-		}
-
-		th {
-			background: var(--panel-2);
-			color: var(--accent-blue);
-			position: sticky;
-			top: 0;
-		}
-
-		tr:hover td {
-			background: rgba(255,255,255,0.03);
-		}
-
 		.muted {
 			color: var(--muted);
 		}
@@ -192,25 +261,18 @@ HTML = """
 			}
 
 			.top-grid {
-				grid-template-columns: minmax(320px, 520px);
+				grid-template-columns: minmax(320px, 520px) minmax(320px, 1fr);
+				align-items: start;
 			}
 
 			.chart-grid {
-				grid-template-columns: minmax(320px, 650px);
+				grid-template-columns: minmax(320px, 700px);
 			}
 		}
 
 		@media (min-width: 1024px) {
 			.page {
 				padding: 2rem;
-			}
-
-			.top-grid {
-				grid-template-columns: minmax(340px, 480px);
-			}
-
-			.chart-grid {
-				grid-template-columns: minmax(340px, 700px);
 			}
 
 			.chart-wrap {
@@ -252,12 +314,10 @@ HTML = """
 				</div>
 			</div>
 
-			{% if latest["temp_f"] > 90 %}
-			<p class="alert">Alert: Temperature is above 90F</p>
-			{% elif latest["temp_f"] < 40 %}
-			<p class="alert">Alert: Temperature is below 40F</p>
-			{% else %}
-			<p class="ok">No temperature alerts.</p>
+			{% if latest_alert %}
+				<div class="status-banner {{ latest_alert['severity'] }}">
+					{{ latest_alert['label'] }}: {{ latest_alert['message'] }}
+				</div>
 			{% endif %}
 		</div>
 		{% else %}
@@ -265,6 +325,26 @@ HTML = """
 			<p>No readings yet.</p>
 		</div>
 		{% endif %}
+
+		<div class="card">
+			<h2>Alert Log</h2>
+			{% if alerts %}
+			<div class="alert-log-list">
+				{% for alert in alerts %}
+				<div class="alert-item {{ alert['severity'] }}">
+					<div class="alert-topline">
+						<span class="severity-pill {{ alert['severity'] }}">{{ alert['label'] }}</span>
+						<span class="alert-meta">{{ alert['ts'] }}</span>
+					</div>
+					<div><strong>{{ alert['node_id'] }}</strong></div>
+					<div>{{ alert['message'] }}</div>
+				</div>
+				{% endfor %}
+			</div>
+			{% else %}
+			<p class="muted">No recent alerts.</p>
+			{% endif %}
+		</div>
 	</div>
 
 	<div class="charts-section">
@@ -292,7 +372,44 @@ HTML = """
 	const temps = {{ rows | map(attribute='temp_f') | list | tojson }};
 	const humidities = {{ rows | map(attribute='humidity') | list | tojson }};
 
-	const tempOptions = {
+	const tempZonesPlugin = {
+		id: 'tempZones',
+		beforeDatasetsDraw(chart, args, pluginOptions) {
+			if (!pluginOptions || !pluginOptions.enabled) return;
+
+			const { ctx, chartArea, scales } = chart;
+			const y = scales.y;
+			if (!chartArea || !y) return;
+
+			const zones = pluginOptions.zones || [];
+
+			ctx.save();
+
+			zones.forEach(zone => {
+				const topVal = Math.min(zone.max, y.max);
+				const bottomVal = Math.max(zone.min, y.min);
+
+				if (topVal <= bottomVal) return;
+
+				const yTop = y.getPixelForValue(topVal);
+				const yBottom = y.getPixelForValue(bottomVal);
+
+				ctx.fillStyle = zone.color;
+				ctx.fillRect(
+					chartArea.left,
+					yTop,
+					chartArea.right - chartArea.left,
+					yBottom - yTop
+				);
+			});
+
+			ctx.restore();
+		}
+	};
+
+	Chart.register(tempZonesPlugin);
+
+	const baseOptions = {
 		responsive: true,
 		maintainAspectRatio: false,
 		plugins: {
@@ -311,7 +428,27 @@ HTML = """
 				grid: {
 					color: "#334155"
 				}
-			},
+			}
+		}
+	};
+
+	const tempOptions = {
+		...baseOptions,
+		plugins: {
+			...baseOptions.plugins,
+			tempZones: {
+				enabled: true,
+				zones: [
+					{ min: 30, max: 32, color: 'rgba(251,113,133,0.16)' },
+					{ min: 32, max: 45, color: 'rgba(251,191,36,0.12)' },
+					{ min: 45, max: 95, color: 'rgba(74,222,128,0.10)' },
+					{ min: 95, max: 100, color: 'rgba(251,191,36,0.12)' },
+					{ min: 100, max: 120, color: 'rgba(251,113,133,0.16)' }
+				]
+			}
+		},
+		scales: {
+			...baseOptions.scales,
 			y: {
 				min: 30,
 				max: 120,
@@ -327,25 +464,9 @@ HTML = """
 	};
 
 	const humidityOptions = {
-		responsive: true,
-		maintainAspectRatio: false,
-		plugins: {
-			legend: {
-				labels: {
-					color: "#e5e7eb"
-				}
-			}
-		},
+		...baseOptions,
 		scales: {
-			x: {
-				ticks: {
-					maxTicksLimit: 6,
-					color: "#94a3b8"
-				},
-				grid: {
-					color: "#334155"
-				}
-			},
+			...baseOptions.scales,
 			y: {
 				min: 0,
 				max: 100,
@@ -372,7 +493,9 @@ HTML = """
 				borderColor: "#f97316", // orange
 				backgroundColor: "#f97316",
 				fill: false,
-				tension: 0.3
+				tension: 0.3,
+				pointRadius: 3,
+				pointHoverRadius: 4
 			}]
 		},
 		options: tempOptions
@@ -389,7 +512,9 @@ HTML = """
 				borderColor: "#22c55e", // green
 				backgroundColor: "#22c55e",
 				fill: false,
-				tension: 0.3
+				tension: 0.3,
+				pointRadius: 3,
+				pointHoverRadius: 4
 			}]
 		},
 		options: humidityOptions
@@ -427,9 +552,33 @@ def dashboard():
 		GROUP BY strftime('%Y-%m-%d %H:00:00', r.ts)
 		ORDER BY MIN(r.ts) ASC
 	""").fetchall()
+
+	alert_rows = conn.execute("""
+		SELECT ts, node_id, temp_f
+		FROM readings
+		WHERE temp_f < 45 OR temp_f > 95
+		ORDER BY id DESC
+		LIMIT 12
+	""").fetchall()
+
 	conn.close()
 
-	return render_template_string(HTML, latest=latest, rows=rows)
+	latest_alert = classify_temp_alert(latest["temp_f"]) if latest else None
+
+	alerts = []
+	for row in alert_rows:
+		alert = classify_temp_alert(row["temp_f"])
+		if alert and alert["severity"] in ("warning", "critical"):
+			alerts.append({
+				"ts": row["ts"],
+				"node_id": row["node_id"],
+				"temp_f": row["temp_f"],
+				"severity": alert["severity"],
+				"label": alert["label"],
+				"message": alert["message"]
+			})
+
+	return render_template_string(HTML, latest=latest, rows=rows, latest_alert=latest_alert, alerts=alerts)
 
 if __name__ == "__main__":
 	app.run(host="0.0.0.0", port=5000, debug=False)
