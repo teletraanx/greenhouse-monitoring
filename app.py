@@ -11,7 +11,7 @@ HTML = """
 <head>
 	<meta charset="utf-8">
 	<title>Greenhouse Dashboard</title>
-	<meta name="viewport" content="width=device-width, initial-scaled=1">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta http-equiv="refresh" content="30">
 	<style>
 		:root {
@@ -131,7 +131,7 @@ HTML = """
 			margin-bottom: 1rem;
 		}
 
-		.charts-grid {
+		.chart-grid {
 			display: grid;
 			grid-template-columns: 1fr;
 			gap: 1rem;
@@ -272,14 +272,14 @@ HTML = """
 
 		<div class="chart-grid">
 			<div class="chart-card">
-				<h3>Temperature (Last 50 Readings)</h3>
+				<h3>Temperature (Last 24 Hours)</h3>
 				<div class="chart-wrap">
 					<canvas id="tempChart"></canvas>
 				</div>
 			</div>
 
 			<div class="chart-card">
-				<h3>Humidity (Last 50 Readings)</h3>
+				<h3>Humidity (Last 24 Hours)</h3>
 				<div class="chart-wrap">
 					<canvas id="humidityChart"></canvas>
 				</div>
@@ -291,10 +291,6 @@ HTML = """
 	const labels = {{ rows | map(attribute='ts') | list | tojson }};
 	const temps = {{ rows | map(attribute='temp_f') | list | tojson }};
 	const humidities = {{ rows | map(attribute='humidity') | list | tojson }};
-
-	const reversedLabels = [...labels].reverse();
-	const reversedTemps = [...temps].reverse();
-	const reversedHumidities = [...humidities].reverse();
 
 	const sharedOptions = {
 		responsive: true,
@@ -332,10 +328,10 @@ HTML = """
 	new Chart(tempCtx, {
 		type: 'line',
 		data: {
-			labels: reversedLabels,
+			labels: labels,
 			datasets: [{
 				label: 'Temperature (F)',
-				data: reversedTemps,
+				data: temps,
 				borderColor: "#f97316", // orange
 				backgroundColor: "#f97316",
 				fill: false,
@@ -349,10 +345,10 @@ HTML = """
 	new Chart(humidityCtx, {
 		type: 'line',
 		data: {
-			labels: reversedLabels,
+			labels: labels,
 			datasets: [{
 				label: 'Humidity (%)',
-				data: reversedHumidities,
+				data: humidities,
 				borderColor: "#22c55e", // green
 				backgroundColor: "#22c55e",
 				fill: false,
@@ -382,10 +378,17 @@ def dashboard():
 	""").fetchone()
 
 	rows = conn.execute("""
-		SELECT ts, node_id, temp_f, humidity, rssi
-		FROM readings
-		ORDER BY id DESC
-		LIMIT 50
+		WITH latest_time AS (
+			SELECT MAX(ts) AS max_ts FROM readings
+		)
+		SELECT
+			strftime('%m-%d %H:00', r.ts) AS ts,
+			ROUND(AVG(r.temp_f), 1) AS temp_f,
+			ROUND(AVG(r.humidity), 1) AS humidity
+		FROM readings r, latest_time
+		WHERE r.ts >= datetime(latest_time.max_ts, '-24 hours')
+		GROUP BY strftime('%Y-%m-%d %H:00:00', r.ts)
+		ORDER BY MIN(r.ts) ASC
 	""").fetchall()
 	conn.close()
 
